@@ -1,0 +1,17 @@
+{
+  "name": "jtpl",
+  "version": "0.0.1",
+  "description": "简易html模版引擎",
+  "main": "jtpl.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "html",
+    "template",
+    "js",
+    "jtpl"
+  ],
+  "author": "jrs",
+  "license": "ISC"
+}
