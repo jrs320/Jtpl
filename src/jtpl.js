@@ -964,5 +964,6 @@ Jtpl.load = (config = {}) => {
 export default Jtpl
 export {
   transformListItem,
-  fieldData
+  fieldData,
+  $dom
 }
