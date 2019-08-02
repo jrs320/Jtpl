@@ -1,4 +1,4 @@
-# 类似vuejs 2.x单文件框架
+# 类似vuejs 2.x单文件前端框架
 
     框架慢慢完善中，欢迎指正交流。
     支持浏览器版本：ie10以上，chrome，safari，firefox
@@ -6,7 +6,7 @@
 ## 安装使用
 
 ```
-    npm i -S Jtpl
+    npm i -S jtpl
     npm i -D jtpl-loader
     npm i -D jtpl-sass-loader
 ```

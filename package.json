@@ -1,7 +1,7 @@
 {
   "name": "jtpl",
   "version": "0.0.1",
-  "description": "简易html模版引擎",
+  "description": "前端框架",
   "main": "jtpl.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -10,7 +10,8 @@
     "html",
     "template",
     "js",
-    "jtpl"
+    "jtpl",
+    "vue"
   ],
   "author": "jrs",
   "license": "ISC"
