@@ -11,7 +11,7 @@ module.exports = {
     main: ['./src/jtpl.js']
   },
   output: {
-    path: resolve('dist'),
+    path: resolve('lib'),
     filename: 'index.js',
     library: 'jtpl',
     libraryTarget: 'commonjs2'

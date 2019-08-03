@@ -5,7 +5,8 @@
 
 import $dom from './dom.js'
 import Jtpl from './jtpl.js'
-import { transformListItem, fieldData } from './jtpl.js'
+import { transformListItem } from './jtpl.js'
+import { fieldData, clone, destroy } from './util.js'
 class MVVM {
   constructor(data, jtpl) {
     this.jtpl = jtpl
@@ -34,6 +35,7 @@ class MVVM {
           },
           set: newValue => {
             if (initValue !== newValue) {
+              destroy(initValue)
               initValue = newValue
               this._setValue(key, newValue, prefix)
             }
@@ -63,13 +65,20 @@ class MVVM {
       let fn = data[method]
       data[method] = function() {
         let args = [...arguments]
-        let domLists = self.lists[prefixKeys.join()]
-        if (domLists) {
-          domLists.forEach(list => {
-            list[method].apply(list, args)
-          })
+        if (['push', 'pop'].includes(method)) {
+          let domLists = self.lists[prefixKeys.join()]
+          if (domLists) {
+            domLists.forEach(list => {
+              list[method].apply(list, args)
+            })
+          }
+          return fn.apply(this, args)
         }
-        return fn.apply(this, args)
+        else {
+          let result = fn.apply(this, args)
+          fieldData(self.data, prefixKeys.join(), clone(this))
+          return result
+        }
       }
     })
   }
@@ -97,12 +106,13 @@ class MVVM {
           if (!view) {
             return
           }
-          if (view.isUpdateByArrayMethod(prefixKeys)) {
-            viewIds.delete(viewId)
-          }
-          else {
-            updateViewIds.add(viewId)
-          }
+          // if (view.isUpdateByArrayMethod(prefixKeys)) {
+          //   viewIds.delete(viewId)
+          // }
+          // else {
+          //   updateViewIds.add(viewId)
+          // }
+          updateViewIds.add(viewId)
         })
       }
     }
@@ -345,15 +355,11 @@ class List {
       }
     }
     let { listViewIds, fragNode } = this._newItemViews(value)
-    if (listViewIds.length < 1) {
-      return
-    }
     let startNode = $dom(`*[${emptyVid}`).el
     $dom(fragNode).insertAfter(startNode)
     this.listViewIds.forEach(vId => {
       $dom(`*[${vId}]`).remove()
     })
-
     this.listViewIds = listViewIds
     vm.jtpl.renderDone()
   }
@@ -428,7 +434,6 @@ class List {
     else {
       let delVids = this.listViewIds.splice(index, sum)
       delVids.forEach(vId => {
-        console.log(vId)
         $dom(`*[${vId}]`).remove()
       })
     }

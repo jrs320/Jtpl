@@ -1,14 +1,14 @@
 # 类似vuejs 2.x单文件前端框架
 
-    框架慢慢完善中，欢迎指正交流。
-    支持浏览器版本：ie10以上，chrome，safari，firefox
+    框架慢慢完善中，欢迎交流。
+    支持浏览器版本：ie11，chrome，safari，firefox
 
 ## 安装使用
 
 ```
     npm i -S jtpl
     npm i -D jtpl-loader
-    npm i -D jtpl-sass-loader
+    npm i -D jtpl-css-loader
 ```
 
 ## 使用说明
@@ -16,7 +16,7 @@
 1. 必须通过webpack构建
 2. 需要配置两个loader
     - jtpl-loader,
-    - jtpl-sass-loader
+    - jtpl-css-loader
 3. 跟vuejs 2.x单文件使用类似
 4. 只能存在一个跟元素
 5. 标签必须要闭合
@@ -43,7 +43,7 @@
 7. 异步加载
 8. 虚拟dom
 9. 单元测试
-10. 改成ts实现？
+10. 改成ts实现
 11. 官网文档
 
 ## 难点心得

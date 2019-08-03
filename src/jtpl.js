@@ -1,12 +1,13 @@
 /**
  * 前端框架，类似vuejs2.x单文件模版框架
- * 需要同步使用jtpl-loader和jtpl-sass-loader
+ * 需要同步使用jtpl-loader和jtpl-css-loader
  * @author jrs
  */
 
 import MVVM from './mvvm.js'
 import $dom from './dom.js'
 import { modelTagName, on, off } from './dom.js'
+import { fieldData, clone, destroy } from './util.js'
 class Jtpl {
   /**
    * @param {object} data 模版create传入的模版数据
@@ -884,70 +885,6 @@ const createCacheDomId = vId => ('[#' + (vId || random()) + '#]')
 const createCacheScopeId = mId => ('[%' + mId + '%]')
 const random = () =>  Math.floor(Math.random() * 100000000)
 
-/**
- * 对层级字段求值 eg: data, "a,b,c" => data.a.b.c
- * @param {*} data 
- * @param {*} field 
- */
-const fieldData = function (data, field) {
-  let value = data
-  let keys = field.split(',')
-  while(keys.length > 1) {
-    value = value[keys.shift()]
-  }
-  if (arguments.length > 2) {
-    value[keys[0]] = arguments[2]
-  }
-  return value[keys[0]]
-}
-
-/**
- * 深拷贝
- * @param {*} data 
- */
-const clone = (data) => {
-  let fnFlag = '#fn#'
-  let str = JSON.stringify(data, (key, value) => {
-    if (typeof value === 'function') {
-      return fnFlag + value.toString()
-    }
-    return value
-  })
-
-  let newData = JSON.parse(str, (key, value) => {
-    let val = value, fn
-    let reg = new RegExp(`^${fnFlag}`)
-    if (reg.test(val)) {
-      val = val.replace(reg, '')
-      if (!/^\s*function/.test(val) 
-        && !/^[^\{]*=>/.test(val)) {
-        val = 'function ' + val
-      }
-      try {
-        fn = new Function('', `return ${val}`)()
-      } catch (e) {
-        fn = value
-      }
-      return fn
-    }
-    return val
-  })
-  return newData
-}
-
-/**
- * 手动销毁对象
- * @param {*} data 
- */
-const destroy = (data) => {
-  for (let key in data) {
-    if (typeof data[key] === 'object') {
-      destroy(data[key])
-    }
-    delete data[key]
-  }
-}
-
 Jtpl.load = (config = {}) => {
   const { el, tpl, global = {} } = config
   if (!el) {
@@ -964,6 +901,5 @@ Jtpl.load = (config = {}) => {
 export default Jtpl
 export {
   transformListItem,
-  fieldData,
   $dom
 }
