@@ -1,6 +1,6 @@
 {
   "name": "jtpl",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "前端框架",
   "main": "src/jtpl.js",
   "main1": "lib/index.js",
