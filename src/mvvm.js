@@ -35,7 +35,6 @@ class MVVM {
           },
           set: newValue => {
             if (initValue !== newValue) {
-              destroy(initValue)
               initValue = newValue
               this._setValue(key, newValue, prefix)
             }
