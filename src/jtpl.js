@@ -18,13 +18,11 @@ class Jtpl {
     config = Object.assign({
       components: {},
       data() { return {} },
+      computed: {},
       mounted() { },
-      methods: {}
+      methods: {},
+      watch: {}
     }, config)
-
-    for (let key in config.methods) {
-      this[key] = config.methods[key].bind(this)
-    }
     this.mId = exData.mId || createModuleId()
     this.superJtpl = exData.superJtpl
     this.definedEvents = exData.definedEvents
@@ -34,10 +32,9 @@ class Jtpl {
     this.rootTagName = config.rootTagName    
     this.components = config.components
     this.c_mounted = config.mounted
-
     let props = data.props
     delete data.props
-    this.data = Object.assign({}, config.data.bind(this)(), data)
+    this.data = Object.assign({}, config.data(), data)
     let propsConfig = config.props
     if (Array.isArray(propsConfig)) {
       for (let key in props) {
@@ -58,6 +55,8 @@ class Jtpl {
       refs: {},
       events: []
     }
+
+    this._wrappData(config)
     this.parsedHtml = parseTpl(this)
   }
   mounted() {
@@ -138,6 +137,17 @@ class Jtpl {
   }
   remove() {
     this._destory()
+  }
+  _wrappData(config) {
+    const { data, mvvm } = this
+    const { methods, computed, watch } = config
+
+    data.refs = this.refs
+    this.c_mounted = this.c_mounted.bind(data)
+    for (let key in methods) {
+      this[key] = methods[key].bind(data)
+      data[key] = this[key]
+    }
   }
   _bind(events) {
     events = events || this.events
