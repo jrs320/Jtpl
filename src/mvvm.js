@@ -15,6 +15,7 @@ class MVVM {
     this.views = {}
     // 更新字段影响的view id
     this.fieldForVids = {}
+    this.watches = {}
     this._observer(data, [])
   }
   _observer(data, prefix, keys) {
@@ -35,8 +36,9 @@ class MVVM {
           },
           set: newValue => {
             if (initValue !== newValue) {
+              let oldValue = initValue
               initValue = newValue
-              this._setValue(key, newValue, prefix)
+              this._setValue(key, newValue, oldValue, prefix)
             }
           }
         })
@@ -81,17 +83,17 @@ class MVVM {
       }
     })
   }
-  _setValue(key, value, prefix) {
+  _setValue(key, newValue, oldValue, prefix) {
     let { fieldForVids, views } = this
     let prefixKeys = [...prefix, key]
-    if (typeof value === 'object') {
-      this._observer(value, prefixKeys)
-      if (Array.isArray(value)) {
-        this._observerList(value, prefixKeys)
+    if (typeof newValue === 'object') {
+      this._observer(newValue, prefixKeys)
+      if (Array.isArray(newValue)) {
+        this._observerList(newValue, prefixKeys)
         let domLists = this.lists[[...prefix, key].join()]
         if (domLists) {
           domLists.forEach(list => {
-            list.update(value)
+            list.update(newValue)
           })
         }
       }
@@ -118,6 +120,9 @@ class MVVM {
     updateViewIds.forEach(viewId => {
       views[viewId].update(prefixKeys.join())
     })
+
+    // invoking callback function of watching field
+    this._invokeWatchFn(key, newValue, oldValue, prefix)
   }
   addView(domV) {
     const { views, fieldForVids } = this
@@ -147,6 +152,25 @@ class MVVM {
       this.lists[field] = [list]
     }
   }
+  addWatch(config = {}) {
+    const { watches } = this
+    for (let field in config) {
+      let cf = config[field], handler, deep = false
+      if (typeof cf === 'function') {
+        handler = cf
+      }
+      else if (typeof cf === 'object') {
+        handler = cf.handler || Function
+        deep = cf.deep
+      }
+      if (field in watches) {
+        watches[field].push({ handler, deep })
+      }
+      else {
+        watches[field] = [{ handler, deep }]
+      }
+    }
+  }
   _getListItems(listItemVs) {
     /**
      * eg: prefix = "data,list,0,itemList,1"
@@ -174,6 +198,43 @@ class MVVM {
     })
     return listItems
   }
+  _invokeWatchFn(key, newValue, oldValue, prefix) {
+    let { watches, data } = this
+    let _prefix = [...prefix, key].join()
+    let regPre = new RegExp(`^${_prefix},`)
+
+    if (!Object.keys(watches).some(field => {
+      return new RegExp(`^${_prefix}`).test(field.split('.').join())
+    })) {
+      return
+    }
+
+    Object.keys(watches).forEach(field => {
+      let cfs = watches[field]
+      field = field.split('.').join()
+      // eg _prefix = a.b then a.b , a.b.c , a.b.c.d... all need update
+      if (regPre.test(field + ',')) {
+        let suffix = field.replace(regPre, '')
+        let newData = field === _prefix ? newValue : fieldData(newValue, suffix)
+        let oldData = field === _prefix ? oldValue : fieldData(oldValue, suffix)
+        cfs.forEach(cf => {
+          cf.handler.bind(data)(newData, oldData)
+        })
+      }
+      let regDeep = new RegExp(`^${field},`)
+      // eg _prefix = a.b.c and if a , a.b deep watch, a a.b need update
+      if (regDeep.test(_prefix)) {
+        let newData = fieldData(data, field)
+        let oldData = clone(newData)
+        fieldData(oldData, _prefix.replace(regDeep, ''), oldValue)
+        cfs.forEach(cf => {
+          if (cf.deep) {
+            cf.handler.bind(data)(newData, oldData)
+          }
+        })
+      }
+    })
+  }
   _destory() {
     this.data = null
     for(let key in this.views) {
@@ -185,6 +246,8 @@ class MVVM {
     }
     this.fieldForVids = null
     this.views = null
+    destroy(this.watches)
+    this.watches = null
   }
 }
 

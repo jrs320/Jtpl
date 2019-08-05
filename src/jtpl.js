@@ -148,6 +148,7 @@ class Jtpl {
       this[key] = methods[key].bind(data)
       data[key] = this[key]
     }
+    mvvm.addWatch(watch)
   }
   _bind(events) {
     events = events || this.events

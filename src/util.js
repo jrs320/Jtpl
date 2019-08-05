@@ -5,7 +5,9 @@
  */
 const fieldData = function (data, field) {
   let value = data
-  let keys = field.split(',')
+  let keys = typeof field === 'string' 
+    ? field.split(',')
+    : clone(field)
   while(keys.length > 1) {
     value = value[keys.shift()]
   }
