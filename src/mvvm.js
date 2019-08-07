@@ -16,6 +16,7 @@ class MVVM {
     // 更新字段影响的view id
     this.fieldForVids = {}
     this.watches = {}
+    this.computed = {}
     this._observer(data, [])
   }
   _observer(data, prefix, keys) {
@@ -32,6 +33,7 @@ class MVVM {
           configurable: true,
           enumerable: true,
           get: () => {
+            recordExecField.add([...prefix, key].join())
             return initValue
           },
           set: newValue => {
@@ -84,7 +86,7 @@ class MVVM {
     })
   }
   _setValue(key, newValue, oldValue, prefix) {
-    let { fieldForVids, views } = this
+    let { fieldForVids, views, computed } = this
     let prefixKeys = [...prefix, key]
     if (typeof newValue === 'object') {
       this._observer(newValue, prefixKeys)
@@ -123,6 +125,15 @@ class MVVM {
 
     // invoking callback function of watching field
     this._invokeWatchFn(key, newValue, oldValue, prefix)
+    // computed field value again
+    Object.keys(computed).forEach(field => {
+      let computedData = computed[field]
+      if (computedData.affectedFields.some(item => {
+        return new RegExp(`^${prefixKeys.join()},`).test(item + ',')
+      })) {
+        computedData.refresh()
+      }
+    })
   }
   addView(domV) {
     const { views, fieldForVids } = this
@@ -170,6 +181,27 @@ class MVVM {
         watches[field] = [{ handler, deep }]
       }
     }
+  }
+  addComputed(config = {}) {
+    const { data, computed } = this
+    Object.keys(config).forEach(field => {
+      let computedFn = config[field]
+      if (typeof computedFn != 'function') {
+        return
+      }
+      computed[field] = new ComputedField(field, computedFn.bind(data), this)
+      Object.defineProperty(data, [field], {
+        configurable: true,
+        enumerable: true,
+        get: () => {
+          recordExecField.add(field)
+          return computed[field].get()
+        },
+        set: () => {
+          console.warn(`field '${field}' is only read`)
+        }
+      })
+    })
   }
   _getListItems(listItemVs) {
     /**
@@ -544,6 +576,95 @@ class List {
     this.vm = null
   }
 }
+
+class ComputedField {
+  constructor(field, computedFn, vm) {
+    this.field = field
+    this.computedFn = computedFn
+    this.vm = vm
+    // 记录参与当前属性计算的字段
+    this.affectedFields = []
+    // 记录当前属性被用到哪些其他计算属性
+    this.impactFields = new Set()
+    this.value = undefined
+    this.isComputed = false
+  }
+  get() {
+    if (!this.isComputed) {
+      this._computed()
+    }
+    return this.value
+  }
+  refresh() {
+    if (!this.isComputed) {
+      this._computed()
+    }
+    let value = this.computedFn()
+    if (value !== this.value) {
+      this.value = value
+      let { fieldForVids, views } = this.vm
+      let updateViewIds = new Set()
+      for (let field in fieldForVids) {
+        if (new RegExp(`^${this.field}`).test(field)) {
+          let viewIds = fieldForVids[field]
+          viewIds.forEach(viewId => {
+            let view = views[viewId]
+            if (!view) {
+              return
+            }
+            updateViewIds.add(viewId)
+          })
+        }
+      }
+      updateViewIds.forEach(viewId => {
+        views[viewId].update(this.field)
+      })
+    }
+    this.impactFields.forEach(computedData => {
+      computedData && computedData.refresh()
+    })
+  }
+  _computed() {
+    recordExecField.start()
+    this.value = this.computedFn()
+    this.affectedFields = recordExecField.get()
+    this.affectedFields.forEach(field => {
+      let computedData = this.vm.computed[field]
+      if (computedData) {
+        computedData.impactFields.add(this.field)
+      }
+    })
+    this.isComputed = true
+  }
+}
+
+/**
+ * 记录用到的field
+ */
+const recordExecField = new class {
+  constructor() {
+    this.record = false
+    this.execFields = new Set()
+  }
+  start() {
+    this.execFields.clear()
+    this.record = true
+    return this
+  }
+  add(field) {
+    if (this.record) {
+      this.execFields.add(field)
+    }
+    return this
+  }
+  get() {
+    let fields = [...this.execFields]
+    this.execFields.clear()
+    this.record = false
+    return fields
+  }
+}
+
 
 /**
  * 运行表达式

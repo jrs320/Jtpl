@@ -142,13 +142,17 @@ class Jtpl {
     const { data, mvvm } = this
     const { methods, computed, watch } = config
 
+    // 把 refs, mounted, methods 上下文设置为data
     data.refs = this.refs
     this.c_mounted = this.c_mounted.bind(data)
     for (let key in methods) {
       this[key] = methods[key].bind(data)
       data[key] = this[key]
     }
+    // 监听watch字段
     mvvm.addWatch(watch)
+    // 计算属性computed
+    mvvm.addComputed(computed)
   }
   _bind(events) {
     events = events || this.events
