@@ -19,6 +19,7 @@ class Jtpl {
       components: {},
       data() { return {} },
       computed: {},
+      created() {},
       mounted() { },
       methods: {},
       watch: {}
@@ -32,6 +33,8 @@ class Jtpl {
     this.rootTagName = config.rootTagName    
     this.components = config.components
     this.c_mounted = config.mounted
+    this.c_created = config.created
+
     let props = data.props
     delete data.props
     this.data = Object.assign({}, config.data(), data)
@@ -44,7 +47,9 @@ class Jtpl {
       }
       Object.assign(this.data, props)
     }
+
     this.mvvm = new MVVM(this.data, this)
+    this.slots = {}
     this.refs = {}
     this.childJtpls = {}
     this.events = []
@@ -58,9 +63,17 @@ class Jtpl {
 
     this._wrappData(config)
     this.parsedHtml = parseTpl(this)
+    try {
+      this.c_created.bind(this.data)()
+    }
+    catch(e) {
+      console.error(e)
+    }
   }
   mounted() {
+    this.$el = $dom(`*[${this.mId}]`)
     this.renderDone()
+    this.data.$el = this.$el
     delete this.parsedHtml
     try {
       this.c_mounted()
@@ -82,7 +95,6 @@ class Jtpl {
     }
     this.childJtpls = Object.assign(this.childJtpls, childJtpls)
 
-    this.$el = $dom(`*[${this.mId}]`)
     for (let key in refs) {
       let ref = refs[key]
       if (ref instanceof Jtpl) {
@@ -149,6 +161,7 @@ class Jtpl {
       this[key] = methods[key].bind(data)
       data[key] = this[key]
     }
+    data.$emit = this.$emit.bind(this)
     // 监听watch字段
     mvvm.addWatch(watch)
     // 计算属性computed
@@ -408,6 +421,23 @@ const transformListItem = (jtpl, listItem, dom) => {
   }
 }
 
+const transformSlotTpl = (jtpl, scoped, dom) => {
+  let { temp } = jtpl
+  let { domHtmls } = temp
+  let slotHtmls = {}
+  // cacheDomId
+  let reg = /\[#(view)?\d+?#\]/g
+  dom.content.replace(reg, cacheId => {
+    let dom = domHtmls[cacheId]
+    if (dom && dom.tagName === 'template') {
+      let m = dom.attr.match(/slot=(['"])([\s\S]+?)\1/)
+      let slotName = m ? m[2] : 'default'
+      slotHtmls[slotName] = transformDom(jtpl, dom.content, dom.listItemVs)
+    }
+  })
+  return slotHtmls
+}
+
 /**
  * 解析普通标签
  * @param {*} jtpl 
@@ -419,6 +449,14 @@ const parseNode = (jtpl, dom) => {
   let domViewId = dom.domViewId || ''
   // 匹配已经被缓存的表达式id
   let regExpression = /\[!\d+?!\]/g
+
+  // slot标签
+  if (dom.tagName === 'slot') {
+    let m = dom.attr.match(/name=(['"])([\s\S]+?)\1/)
+    let slotName = m ? m[2] : 'default'
+    return createSlotId(slotName)
+  }
+
   // j-for指令处理
   let regFor = /(([a-z]|[A-Z]|_|\-|\$|\d)+)=(['"])([\s\S]+?)\3/g
   let forExpression
@@ -659,6 +697,16 @@ const parseComponent = (jtpl, dom) => {
   if (ref) {
     jtpl.transformResult.refs[ref] = cJtpl
   }
+  // parse slot
+  let slots = transformSlotTpl(jtpl, cJtpl.data, dom)
+  let reg = /\[@(.*)@\]/g
+  cJtpl.parsedHtml = cJtpl.parsedHtml.replace(reg, ($0, $1) => {
+    let slotName = $1
+    if (slotName in slots) {
+      return slots[slotName]
+    }
+    return ''
+  })
   return cJtpl.parsedHtml
 }
 
@@ -898,6 +946,7 @@ const createRefId = () => ('ref' + random())
 const createExpressionId = () => ('[!' + random() + '!]')
 const createCacheDomId = vId => ('[#' + (vId || random()) + '#]')
 const createCacheScopeId = mId => ('[%' + mId + '%]')
+const createSlotId = name => ('[@' + name + '@]')
 const random = () =>  Math.floor(Math.random() * 100000000)
 
 Jtpl.load = (config = {}) => {
