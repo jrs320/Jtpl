@@ -31,7 +31,8 @@
 4. 双向数据绑定
 5. 数组操作的监听
 6. 指令，目前实现了j-model，j-show，j-for
-7. computed，watch feature
+7. 增加数据computed，watch feature
+8. 增加组件slot feature，方便封装通用组件
 
 ### 后续计划实现的功能
 
