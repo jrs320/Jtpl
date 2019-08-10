@@ -15,8 +15,8 @@
 
 1. 必须通过webpack构建
 2. 需要配置两个loader
-    - jtpl-loader,
-    - jtpl-css-loader
+    - [jtpl-loader](https://github.com/jrs320/Jtpl-loader)
+    - [jtpl-css-loader](https://github.com/jrs320/Jtpl-css-loader)
 3. 跟vuejs 2.x单文件使用类似
 4. 只能存在一个跟元素
 5. 标签必须要闭合
