@@ -62,7 +62,7 @@
 
 ### 示例项目
 1. [Jtpl-example-project](https://github.com/jrs320/Jtpl-example-project)
-2. [线上演示](http://writejs.com/jtpl-example/index.html)
+2. [线上演示](http://121.42.148.207/jtpl-example/index.html)
 
 
 
